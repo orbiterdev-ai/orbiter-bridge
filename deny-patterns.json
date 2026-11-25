@@ -1,0 +1,167 @@
+{
+  "version": "1.0",
+  "patterns": [
+    {
+      "pattern": "rm\\s+(-[a-zA-Z]*f|-[a-zA-Z]*r|--force|--recursive)",
+      "category": "file_deletion",
+      "description": "Recursive or forced file deletion",
+      "severity": "critical"
+    },
+    {
+      "pattern": "del\\s+/[sS]",
+      "category": "file_deletion",
+      "description": "Windows recursive file deletion",
+      "severity": "critical"
+    },
+    {
+      "pattern": "Remove-Item.*-Recurse",
+      "category": "file_deletion",
+      "description": "PowerShell recursive file deletion",
+      "severity": "critical"
+    },
+    {
+      "pattern": "Remove-Item.*-Force",
+      "category": "file_deletion",
+      "description": "PowerShell forced file deletion",
+      "severity": "critical"
+    },
+    {
+      "pattern": "rmdir\\s+/[sS]",
+      "category": "file_deletion",
+      "description": "Windows recursive directory deletion",
+      "severity": "critical"
+    },
+    {
+      "pattern": "git\\s+push\\s+.*--force",
+      "category": "git_destructive",
+      "description": "Force push to git remote",
+      "severity": "critical"
+    },
+    {
+      "pattern": "git\\s+push\\s+.*-f\\b",
+      "category": "git_destructive",
+      "description": "Force push to git remote (short flag)",
+      "severity": "critical"
+    },
+    {
+      "pattern": "git\\s+reset\\s+--hard",
+      "category": "git_destructive",
+      "description": "Hard reset git history",
+      "severity": "critical"
+    },
+    {
+      "pattern": "git\\s+clean\\s+.*-[a-zA-Z]*f[a-zA-Z]*d",
+      "category": "git_destructive",
+      "description": "Force clean untracked files and directories",
+      "severity": "critical"
+    },
+    {
+      "pattern": "git\\s+branch\\s+.*-[dD]",
+      "category": "git_destructive",
+      "description": "Delete git branch",
+      "severity": "warning"
+    },
+    {
+      "pattern": "git\\s+push(?!.*--(force|no-verify))",
+      "category": "git_push",
+      "description": "Push to git remote",
+      "severity": "warning"
+    },
+    {
+      "pattern": "npm\\s+publish",
+      "category": "package_publish",
+      "description": "Publish package to npm",
+      "severity": "high"
+    },
+    {
+      "pattern": "cargo\\s+publish",
+      "category": "package_publish",
+      "description": "Publish crate to crates.io",
+      "severity": "high"
+    },
+    {
+      "pattern": "gem\\s+push",
+      "category": "package_publish",
+      "description": "Publish gem to rubygems",
+      "severity": "high"
+    },
+    {
+      "pattern": "DROP\\s+(TABLE|DATABASE|SCHEMA|INDEX)",
+      "category": "database",
+      "description": "Drop database objects",
+      "severity": "critical"
+    },
+    {
+      "pattern": "TRUNCATE\\s+TABLE",
+      "category": "database",
+      "description": "Truncate database table",
+      "severity": "critical"
+    },
+    {
+      "pattern": "DELETE\\s+FROM\\s+\\w+\\s*(;|$|WHERE\\s+1)",
+      "category": "database",
+      "description": "Mass delete from database table",
+      "severity": "critical"
+    },
+    {
+      "pattern": "\\b(shutdown|reboot|halt|poweroff)\\b",
+      "category": "system",
+      "description": "System shutdown or reboot",
+      "severity": "critical"
+    },
+    {
+      "pattern": "\\bformat\\s+[a-zA-Z]:",
+      "category": "system",
+      "description": "Format disk drive",
+      "severity": "critical"
+    },
+    {
+      "pattern": "mkfs\\.",
+      "category": "system",
+      "description": "Create filesystem (destructive)",
+      "severity": "critical"
+    },
+    {
+      "pattern": "terraform\\s+destroy",
+      "category": "cloud_deploy",
+      "description": "Destroy terraform infrastructure",
+      "severity": "critical"
+    },
+    {
+      "pattern": "kubectl\\s+delete",
+      "category": "cloud_deploy",
+      "description": "Delete Kubernetes resources",
+      "severity": "high"
+    },
+    {
+      "pattern": "aws\\s+.*--delete",
+      "category": "cloud_deploy",
+      "description": "AWS delete operations",
+      "severity": "high"
+    },
+    {
+      "pattern": "terraform\\s+apply\\s+.*-auto-approve",
+      "category": "cloud_deploy",
+      "description": "Auto-approve terraform changes",
+      "severity": "high"
+    },
+    {
+      "pattern": "\\b(?:npm|pnpm|yarn|bun)\\s+(?:run\\s+)?[^\\n;&|]*(?:\\bdeploy\\b|\\bprod(?:uction)?\\b)[^\\n;&|]*",
+      "category": "cloud_deploy",
+      "description": "Run package script with deploy or production target",
+      "severity": "high"
+    },
+    {
+      "pattern": "chmod\\s+.*777",
+      "category": "security",
+      "description": "Set world-writable permissions",
+      "severity": "warning"
+    },
+    {
+      "pattern": "curl.*\\|\\s*(sh|bash)",
+      "category": "security",
+      "description": "Pipe remote script to shell",
+      "severity": "critical"
+    }
+  ]
+}

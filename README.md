@@ -91,12 +91,14 @@ Or add manually to `.claude/settings.local.json`:
 
 ### Codex, Antigravity, Gemini CLI, Cursor & Windsurf
 
-For native lifecycle hooks on Codex, Antigravity, and Gemini CLI, or stdio MCP integration on Cursor and Windsurf, use `@orbiterdev/mcp-server`:
+For native lifecycle hooks on Codex, Antigravity, and Gemini CLI, or stdio MCP integration on Cursor and Windsurf, build [`@orbiterdev/mcp-server`](https://github.com/orbiterdev-ai/mcp-server) from GitHub (or connect directly to Hosted Remote MCP at `https://mcp.orbiterdev.ai/mcp`):
 
 ```bash
-npx -y @orbiterdev/mcp-server codex setup --adapter http --server-url https://api.orbiterdev.ai
-npx -y @orbiterdev/mcp-server antigravity setup --workspace <workspace> --adapter http --server-url https://api.orbiterdev.ai
-npx -y @orbiterdev/mcp-server gemini setup --workspace <workspace> --adapter http --server-url https://api.orbiterdev.ai
+git clone https://github.com/orbiterdev-ai/mcp-server.git
+cd mcp-server && npm ci && npm run build
+node dist/index.js codex setup --adapter http --server-url https://api.orbiterdev.ai
+node dist/index.js antigravity setup --workspace <workspace> --adapter http --server-url https://api.orbiterdev.ai
+node dist/index.js gemini setup --workspace <workspace> --adapter http --server-url https://api.orbiterdev.ai
 ```
 
 Full multi-host setup instructions: [https://orbiterdev.ai/setup](https://orbiterdev.ai/setup)

@@ -7,15 +7,15 @@
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
-const EventSource = require("eventsource");
+const { EventSource } = require("eventsource");
 const axios = require("axios");
 const dotenv = require("dotenv");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
-// Load Environment
-dotenv.config();
+// Load Environment silently so MCP stdio stdout framing is never polluted
+dotenv.config({ quiet: true });
 
 // Configuration
 const CONFIG_PATH = path.join(os.homedir(), ".orbiter-config");
@@ -24,12 +24,18 @@ if (fs.existsSync(CONFIG_PATH)) {
     config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
 }
 
-const BASE_URL = process.env.ORBITER_URL || config.url || "https://api.orbiterdev.ai";
+const BASE_URL = (process.env.ORBITER_URL || config.url || "https://api.orbiterdev.ai").replace(/\/+$/, "");
 const TOKEN = process.env.ORBITER_TOKEN || config.token;
 const MACHINE_ID = process.env.ORBITER_MACHINE_ID || config.machineId || os.hostname();
 
+function sanitizeOutput(value) {
+    const text = String(value ?? "");
+    if (!TOKEN) return text;
+    return text.split(TOKEN).join("[redacted]");
+}
+
 if (!TOKEN) {
-    console.error("❌ Error: ORBITER_TOKEN not found. Please log in first.");
+    console.error("Error: ORBITER_TOKEN not found. Please log in first.");
     process.exit(1);
 }
 
@@ -48,40 +54,40 @@ const server = new Server(
     }
 );
 
-// 2. Establish Remote SSE Connection (Cloud side)
+// 2. Establish Remote SSE Connection (Cloud side) using eventsource v4 fetch option
 const sseUrl = `${BASE_URL}/api/v1/mcp/sse`;
 const messagesUrl = `${BASE_URL}/api/v1/mcp/messages`;
 
-console.error(`🔌 Connecting to Orbiter Remote: ${sseUrl}`);
+console.error(`Connecting to Orbiter Remote: ${sseUrl}`);
 
 const es = new EventSource(sseUrl, {
-    headers: {
-        "Authorization": `Bearer ${TOKEN}`,
-        "X-Orbiter-Machine-ID": MACHINE_ID
-    }
+    fetch: (input, init) => {
+        const headers = new Headers(init && init.headers ? init.headers : undefined);
+        headers.set("Authorization", `Bearer ${TOKEN}`);
+        headers.set("X-Orbiter-Machine-ID", MACHINE_ID);
+        return globalThis.fetch(input, {
+            ...init,
+            headers,
+        });
+    },
 });
 
 es.onerror = (err) => {
-    console.error("❌ SSE Error:", err);
+    const code = err && typeof err.code === "number" ? ` (HTTP ${err.code})` : "";
+    const message = sanitizeOutput(err && err.message ? err.message : "connection error");
+    console.error(`SSE Error${code}: ${message}`);
 };
 
 es.addEventListener("endpoint", (event) => {
-    console.error(`✅ Remote endpoint established: ${event.data}`);
+    console.error(`Remote endpoint established: ${sanitizeOutput(event.data)}`);
 });
 
 // Proxy logic: Remote Message -> Local Stdio
 es.addEventListener("message", (event) => {
     try {
-        const msg = JSON.parse(event.data);
-        // This is a bit tricky: We typically want the remote to act as a tool provider.
-        // But in this bridge model, the LOCAL agent calls the BRIDGE.
-        // The BRIDGE calls the REMOTE (via HTTP POST).
-        // The REMOTE responds (either via HTTP response OR via SSE if async).
-
-        // If the remote sends a push via SSE, it's likely a notification.
-        // For MCP Stdio, we usually only respond to requests.
+        JSON.parse(event.data);
     } catch (e) {
-        console.error("Failed to parse remote message", e);
+        console.error("Failed to parse remote message:", sanitizeOutput(e && e.message ? e.message : e));
     }
 });
 
@@ -106,7 +112,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         });
         return response.data.result;
     } catch (error) {
-        console.error("❌ ListTools Remote Error:", error.message);
+        console.error("ListTools Remote Error:", sanitizeOutput(error && error.message ? error.message : error));
         return { tools: [] };
     }
 });
@@ -127,15 +133,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
         return response.data.result;
     } catch (error) {
-        console.error("❌ CallTool Remote Error:", error.message);
-        throw error;
+        console.error("CallTool Remote Error:", sanitizeOutput(error && error.message ? error.message : error));
+        throw new Error(sanitizeOutput(error && error.message ? error.message : "Remote tool call failed"));
     }
 });
+
+function shutdown() {
+    try {
+        es.close();
+    } catch {
+        // Ignore close errors during shutdown
+    }
+}
+
+process.on("SIGINT", () => {
+    shutdown();
+    process.exit(0);
+});
+process.on("SIGTERM", () => {
+    shutdown();
+    process.exit(0);
+});
+process.stdin.on("close", shutdown);
 
 // 4. Start Transport
 const transport = new StdioServerTransport();
 server.connect(transport).then(() => {
-    console.error("🚀 Orbiter Bridge: Stdio Transport Active");
-}).catch(err => {
-    console.error("❌ Failed to start bridge:", err);
+    console.error("Orbiter Bridge: Stdio Transport Active");
+}).catch((err) => {
+    console.error("Failed to start bridge:", sanitizeOutput(err && err.message ? err.message : err));
+    shutdown();
+    process.exit(1);
 });

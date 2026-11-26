@@ -1,35 +1,34 @@
-# Orbiter Bridge - Claude Code Hook Integration
+# Orbiter Bridge - Local Lifecycle Hook Integration
 
-> Approve AI coding agent actions from your phone. When Claude Code tries to run something dangerous, you get a notification and can approve or reject it - even when you're away from your computer.
+> One-tap human sign-off when AI agents take real-world action, right from your phone (iOS & Android biometrics). When an AI agent attempts a destructive command, Orbiter pauses execution and sends a mobile approval request so you can approve or reject it from anywhere.
 
 ---
 
 ## Install in 60 Seconds
 
-This is the repository-local Claude Code hook pack. The public
-`@orbiterdev/mcp-server` package includes the MCP server and `permission-check`;
-full Claude hook setup remains beta until folded into that package.
+This standalone repository provides the local `PreToolUse`, `PostToolUse`, `PermissionRequest`, and session lifecycle hooks for Claude Code (plus a legacy stdio-to-SSE MCP proxy). For unified multi-host hook setup across Claude Code, Codex, Antigravity, and Gemini CLI, see [`@orbiterdev/mcp-server`](https://github.com/orbiterdev-ai/mcp-server) or [https://orbiterdev.ai/setup](https://orbiterdev.ai/setup).
 
 ```bash
-cd mcp/orbiter-bridge
+git clone https://github.com/orbiterdev-ai/orbiter-bridge.git
+cd orbiter-bridge
 npm install
 npm run build
 npm run setup-hooks
-# Restart Claude Code ✨
+# Restart Claude Code
 ```
 
-**That's it.** The hooks are now active.
+**That's it.** The hooks are now active and paired with your Orbiter Dev mobile app (iOS & Android, with Face ID & Android biometrics).
 
 ---
 
 ## How It Works
 
 ```
-Claude Code wants to run "rm -rf dist/"
+AI agent wants to run "rm -rf dist/"
          │
          ▼
   ┌─────────────────┐
-  │   pre-check.js  │  ← PreToolUse hook
+  │   pre-check.js  │  <- PreToolUse hook
   │  (deny list)    │
   └────────┬────────┘
            │
@@ -42,45 +41,47 @@ Claude Code wants to run "rm -rf dist/"
   exit 0   │   POST /api/v1/approvals
   (allow)  │      │
            │      ▼
-           │   📱 Your phone buzzes
+           │   Mobile push (iOS APNs / Android FCM)
            │      │
-           │   ┌──┴──┐
-           │   │ ✅❌ │  You decide
-           │   └──┬──┘
+           │   ┌──┴──────────────┐
+           │   │ Biometric sign  │  Face ID / Android biometrics
+           │   └──┬──────────────┘
            │      │
            │   ┌──┴──────┐
-           │   │ Approved │ → exit 0 (allow)
-           │   │ Rejected │ → exit 2 (block)
-           │   │ Timeout  │ → exit 2 (block)
+           │   │ Approved │ -> exit 0 (allow)
+           │   │ Rejected │ -> exit 2 (block)
+           │   │ Timeout  │ -> exit 2 (block)
            │   └──────────┘
 ```
 
 ---
 
-## IDE Configuration
+## Agent Host Configuration
 
 ### Claude Code
 
-Run the auto-configurator:
+Run the auto-configurator from inside your cloned `orbiter-bridge` directory:
+
 ```bash
 npm run setup-hooks
 ```
 
 Or add manually to `.claude/settings.local.json`:
+
 ```json
 {
   "hooks": {
     "PreToolUse": [
       {
         "type": "command",
-        "command": "node \"/path/to/mcp/orbiter-bridge/dist/pre-check.js\"",
+        "command": "node \"/path/to/orbiter-bridge/dist/pre-check.js\"",
         "timeout": 130
       }
     ],
     "PostToolUse": [
       {
         "type": "command",
-        "command": "node \"/path/to/mcp/orbiter-bridge/dist/post-hook.js\"",
+        "command": "node \"/path/to/orbiter-bridge/dist/post-hook.js\"",
         "timeout": 5
       }
     ]
@@ -88,15 +89,17 @@ Or add manually to `.claude/settings.local.json`:
 }
 ```
 
-### Antigravity / VS Code
+### Codex, Antigravity, Gemini CLI, Cursor & Windsurf
+
+For native lifecycle hooks on Codex, Antigravity, and Gemini CLI, or stdio MCP integration on Cursor and Windsurf, use `@orbiterdev/mcp-server`:
+
 ```bash
-node scripts/configure-antigravity.js
+npx -y @orbiterdev/mcp-server codex setup --adapter http --server-url https://api.orbiterdev.ai
+npx -y @orbiterdev/mcp-server antigravity setup --workspace <workspace> --adapter http --server-url https://api.orbiterdev.ai
+npx -y @orbiterdev/mcp-server gemini setup --workspace <workspace> --adapter http --server-url https://api.orbiterdev.ai
 ```
 
-### Cursor
-```bash
-node scripts/configure-cursor.js
-```
+Full multi-host setup instructions: [https://orbiterdev.ai/setup](https://orbiterdev.ai/setup)
 
 ---
 
@@ -192,7 +195,7 @@ $ echo '{"tool_name":"run_command","tool_input":{"command":"ls"}}' | node dist/p
 ## Testing
 
 ```bash
-npm test            # 67 tests
+npm test            # 68 tests
 npm run test:watch  # Interactive mode
 ```
 

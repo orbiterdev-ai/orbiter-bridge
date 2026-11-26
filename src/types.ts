@@ -26,7 +26,7 @@ export const HookInputSchema = z.object({
     ...CommonHookFields,
     // Tool-specific fields (PreToolUse / PostToolUse)
     tool_name: z.string(),
-    tool_input: z.record(z.unknown()).optional().default({}),
+    tool_input: z.record(z.string(), z.unknown()).optional().default({}),
     tool_result: z.unknown().optional(),
     tool_response: z.unknown().optional(),
 });
@@ -49,7 +49,7 @@ export type NotificationInput = z.infer<typeof NotificationInputSchema>;
 export const PermissionRequestInputSchema = z.object({
     ...CommonHookFields,
     tool_name: z.string(),
-    tool_input: z.record(z.unknown()).optional().default({}),
+    tool_input: z.record(z.string(), z.unknown()).optional().default({}),
     permission_suggestions: z.array(z.object({
         type: z.string().optional(),
         description: z.string().optional(),
